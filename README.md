@@ -98,7 +98,11 @@ Windows is the primary, tested target. The Linux build is verified to compile an
 ```
 .
 ├── src/
-│   └── main.rs      # the entire app: rendering, geometry, font, input
+│   └── main.rs          # the entire app: rendering, geometry, font, input
+├── assets/              # icon (svg/png/ico/icns) + macOS Info.plist
+├── scripts/             # icon generator + raster asset pipeline
+├── .github/workflows/   # CI + release workflows
+├── build.rs             # version embedding + Windows icon resource
 ├── Cargo.toml
 └── README.md
 ```
@@ -118,6 +122,18 @@ git push -u origin my-change
 ```
 
 CI ([ci.yml](.github/workflows/ci.yml)) runs `cargo build` and `cargo clippy -D warnings` on Windows, Linux, and macOS for every push and pull request.
+
+### Versioning
+
+The version is `MAJOR.MINOR.PATCH` (source of truth: `Cargo.toml`), embedded at build time by [`build.rs`](build.rs) and shown in the window title. Bump it with the `BUMP` env var; `build.rs` rewrites `Cargo.toml` with odometer roll-over — `MINOR`/`PATCH` are single digits `0–9`, `MAJOR` is uncapped:
+
+```sh
+BUMP=patch cargo build && unset BUMP   # 1.2.9 → 1.3.0
+BUMP=minor cargo build && unset BUMP   # 1.9.4 → 2.0.0
+BUMP=major cargo build && unset BUMP   # 1.2.3 → 2.0.0
+```
+
+`BUMP` is one‑shot — always `unset` it after (PowerShell: `Remove-Item Env:BUMP`), or the next rebuild will bump again.
 
 ### Cutting a release
 

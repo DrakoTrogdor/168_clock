@@ -834,7 +834,7 @@ fn main() {
     // `mut` is only exercised on non-Windows, where the transparency hint is set.
     #[allow(unused_mut)]
     let mut builder = WindowBuilder::new()
-        .with_title("168-Hour Week Clock")
+        .with_title(format!("168-Hour Week Clock v{}", env!("WEEK_CLOCK_VERSION")))
         .with_window_icon(load_icon())
         .with_inner_size(LogicalSize::new(720.0, 720.0));
     // On macOS/Linux a transparent window lets the desktop show through the

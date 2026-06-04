@@ -8,6 +8,9 @@
 # MSVC debugging info (generated on Windows builds)
 *.pdb
 
+# Transient temp from build.rs's atomic Cargo.toml rewrite (BUMP=...)
+Cargo.toml.tmp
+
 # Cargo.lock is intentionally committed: this crate is a binary application,
 # so the exact dependency versions are pinned for reproducible builds.
 # (Do not add Cargo.lock here.)
