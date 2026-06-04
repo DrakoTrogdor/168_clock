@@ -38,6 +38,42 @@ extern "system" {
 #[link(name = "user32")]
 extern "system" {
     fn SetWindowRgn(hwnd: isize, hrgn: isize, redraw: i32) -> i32;
+    fn SendMessageW(hwnd: isize, msg: u32, wparam: usize, lparam: isize) -> isize;
+}
+#[cfg(windows)]
+#[link(name = "shell32")]
+extern "system" {
+    // Pull the large + small icons from the .exe's own embedded icon resource.
+    fn ExtractIconExW(file: *const u16, index: i32, large: *mut isize, small: *mut isize, n: u32) -> u32;
+}
+
+/// Set the window's large (taskbar) and small (title-bar) icons from the icon
+/// embedded in the .exe. winit's `with_window_icon` only sets the small icon, so
+/// without this the taskbar uses ICON_BIG (unset) and falls back to a generic
+/// icon. No-op if the icon can't be extracted.
+#[cfg(windows)]
+fn set_windows_taskbar_icon(hwnd: isize) {
+    use std::os::windows::ffi::OsStrExt;
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let wide: Vec<u16> = exe.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let mut large: isize = 0;
+    let mut small: isize = 0;
+    const WM_SETICON: u32 = 0x0080;
+    const ICON_SMALL: usize = 0;
+    const ICON_BIG: usize = 1;
+    unsafe {
+        if ExtractIconExW(wide.as_ptr(), 0, &mut large, &mut small, 1) == 0 {
+            return;
+        }
+        if large != 0 {
+            SendMessageW(hwnd, WM_SETICON, ICON_BIG, large);
+        }
+        if small != 0 {
+            SendMessageW(hwnd, WM_SETICON, ICON_SMALL, small);
+        }
+    }
 }
 
 const SAMPLE_COUNT: u32 = 4; // 4x MSAA for smooth curves and thin hands.
@@ -487,6 +523,10 @@ impl State {
         #[cfg(not(windows))]
         let hwnd = 0isize;
 
+        // winit sets only the small window icon; set the taskbar (big) icon too.
+        #[cfg(windows)]
+        set_windows_taskbar_icon(hwnd);
+
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::PRIMARY,
             ..Default::default()
@@ -804,9 +844,16 @@ fn main() {
     {
         builder = builder.with_transparent(true);
     }
+    // On Windows, start hidden so the taskbar icon (ICON_BIG, set in State::new)
+    // is in place before the taskbar button is created when the window is shown.
+    #[cfg(windows)]
+    {
+        builder = builder.with_visible(false);
+    }
     let window = Arc::new(builder.build(&event_loop).unwrap());
 
     let mut state = pollster::block_on(State::new(window));
+    state.window.set_visible(true);
 
     event_loop
         .run(move |event, elwt| {
