@@ -1,12 +1,14 @@
 # 168‑Hour Week Clock
 
+[![CI](https://github.com/DrakoTrogdor/168_clock/actions/workflows/ci.yml/badge.svg)](https://github.com/DrakoTrogdor/168_clock/actions/workflows/ci.yml)
+
 > A desktop clock whose hour hand sweeps the **entire week**, not just 12 hours. One full revolution = 168 hours, Sunday 00:00 → Saturday 23:59:59.
 
 <p align="center">
   <img src="preview.png" alt="168-Hour Week Clock" width="540">
 </p>
 
-A small native Windows app written in Rust and rendered on the GPU with [`wgpu`](https://github.com/gfx-rs/wgpu). Instead of a 12‑hour dial, the face is divided into **7 days × 24 hours = 168 ticks**, so the slow hand tells you where you are in the *week* at a glance. The minute and second hands behave normally.
+A small native desktop app (Windows · macOS · Linux) written in Rust and rendered on the GPU with [`wgpu`](https://github.com/gfx-rs/wgpu). Instead of a 12‑hour dial, the face is divided into **7 days × 24 hours = 168 ticks**, so the slow hand tells you where you are in the *week* at a glance. The minute and second hands behave normally.
 
 ---
 
@@ -99,6 +101,31 @@ Windows is the primary, tested target. The Linux build is verified to compile an
 │   └── main.rs      # the entire app: rendering, geometry, font, input
 ├── Cargo.toml
 └── README.md
+```
+
+## Contributing
+
+`main` is protected — changes land via pull request with green CI. A typical loop:
+
+```sh
+git switch -c my-change
+# ...edit...
+cargo run --release                          # see it
+cargo clippy --all-targets -- -D warnings    # CI enforces this
+git commit -am "Describe the change"
+git push -u origin my-change
+# open a PR; once CI (build + clippy on Windows/Linux/macOS) is green, merge
+```
+
+CI ([ci.yml](.github/workflows/ci.yml)) runs `cargo build` and `cargo clippy -D warnings` on Windows, Linux, and macOS for every push and pull request.
+
+### Cutting a release
+
+Push a semver tag and the [release workflow](.github/workflows/release.yml) builds and uploads native binaries for all three platforms to a new GitHub Release:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
 ## License
