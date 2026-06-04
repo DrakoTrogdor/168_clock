@@ -1,6 +1,6 @@
 [package]
 name = "week-clock"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 
 # The app lives in the library so Android can build it as a `cdylib` (whose
@@ -61,6 +61,16 @@ target_sdk_version = 33
 label = "Week Clock"
 icon = "@mipmap/ic_launcher"
 theme = "@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+
+# cargo-apk builds the *debug* profile, and android-activity 0.5.2 calls
+# slice::from_raw_parts(null, 0) for the (empty) saved state on first launch.
+# Rust 1.78+ turns that into a debug-assertions abort (SIGABRT inside
+# ANativeActivity_onCreate, before android_main runs), so the app crashes at
+# startup on Android. Turning debug-assertions off compiles that precondition
+# check out. Release builds already have it off. (Fixed upstream in
+# android-activity 0.6 / winit 0.30.)
+[profile.dev]
+debug-assertions = false
 
 [profile.release]
 opt-level = 3
