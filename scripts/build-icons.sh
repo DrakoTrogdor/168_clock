@@ -36,5 +36,20 @@ png2icns "$assets/icon.icns" \
   "$tmp/icon-16.png" "$tmp/icon-32.png" "$tmp/icon-48.png" \
   "$tmp/icon-128.png" "$tmp/icon-256.png" "$tmp/icon-512.png" "$tmp/icon-1024.png"
 
+# 6. Android launcher icons (legacy mipmaps, referenced by cargo-apk as
+#    @mipmap/ic_launcher via [package.metadata.android]).
+res="$assets/android-res"
+gen_mipmap() { # density-name  size
+  local d="$res/mipmap-$1"
+  mkdir -p "$d"
+  rsvg-convert -w "$2" -h "$2" "$svg" -o "$d/ic_launcher.png"
+}
+gen_mipmap mdpi 48
+gen_mipmap hdpi 72
+gen_mipmap xhdpi 96
+gen_mipmap xxhdpi 144
+gen_mipmap xxxhdpi 192
+
 echo "Generated:"
 ls -la "$assets"
+find "$res" -type f | sort

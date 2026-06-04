@@ -44,6 +44,7 @@ icon = ["assets/icon.icns", "assets/icon.png"]
 [package.metadata.android]
 package = "io.github.drakotrogdor.weekclock"
 build_targets = ["aarch64-linux-android"]
+resources = "assets/android-res"
 
 [package.metadata.android.sdk]
 min_sdk_version = 24
@@ -51,6 +52,7 @@ target_sdk_version = 33
 
 [package.metadata.android.application]
 label = "Week Clock"
+icon = "@mipmap/ic_launcher"
 theme = "@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
 
 [profile.release]
