@@ -67,18 +67,29 @@ The executable is written to `target/release/week-clock.exe`. Release builds use
 - **Rendering** — the whole clock is rebuilt every frame as a few thousand colored triangles (face, bezel, ticks, labels, hands) and uploaded to a single vertex buffer. A minimal 2D pipeline with 4× MSAA draws it. There is no retained scene graph; the CPU‑side geometry is cheap enough to regenerate per frame.
 - **Time** — local time (including DST) comes from [`chrono`](https://github.com/chronotope/chrono); the hour‑of‑week, minute, and second are turned into hand angles.
 - **Text** — digits and day names are a hand‑authored vector stroke font (`glyph()` in `src/main.rs`), so there's no glyph‑rasterization or font‑atlas dependency.
-- **Full‑screen transparency** — rather than an alpha‑blended swapchain (unreliable with Windows DXGI flip‑model surfaces), the window is clipped to the clock circle with a Win32 window region (`SetWindowRgn`). A shaped window forces DWM composition, so the see‑through effect works even in full‑screen.
+- **Full‑screen transparency** is handled per platform:
+  - **Windows** — the window is clipped to the clock circle with a Win32 window region (`SetWindowRgn`); a shaped window forces DWM composition, so the see‑through effect works even full‑screen. (Per‑pixel GPU alpha is unreliable with DXGI flip‑model swapchains.)
+  - **macOS / Linux** — a transparent window plus a non‑opaque surface alpha mode; in full‑screen the background is cleared to alpha 0, leaving only the opaque clock circle so the desktop shows around it. macOS uses *simple* full‑screen (not a separate Space) to keep the live desktop behind the clock.
 
 ## Platform support
 
-The target platform is **Windows**. The rendering stack (`wgpu` + `winit`) is cross‑platform, so the clock should build and run on macOS and Linux, but the F11 transparent‑background effect is Windows‑specific and is a no‑op elsewhere.
+| OS | Status | Transparent full‑screen |
+| --- | --- | --- |
+| **Windows 10/11** | Built & tested | Window‑region clip |
+| **Linux** (Wayland, or X11 + compositor) | Builds & initializes (verified on WSL2 Debian 13) | GPU alpha |
+| **macOS** | Cross‑platform code, not verified | GPU alpha (simple full‑screen) |
+
+Windows is the primary, tested target. The Linux build is verified to compile and bring up `winit` + `wgpu` (Vulkan), selecting the transparency‑capable surface path. The macOS path uses the standard `winit`/`wgpu` approach but has not been verified — please report issues.
+
+- **Linux** needs a compositing window manager for the transparency (always present under Wayland; under X11, run a compositor such as `picom`). Without one, full‑screen simply shows the opaque dark background.
+- **macOS** keeps the desktop visible behind the clock by using *simple* full‑screen rather than a separate Space.
 
 ## Built with
 
-- [`wgpu`](https://github.com/gfx-rs/wgpu) — GPU rendering (Direct3D 12 backend on Windows)
+- [`wgpu`](https://github.com/gfx-rs/wgpu) — GPU rendering (Direct3D 12 on Windows, Metal on macOS, Vulkan on Linux)
 - [`winit`](https://github.com/rust-windowing/winit) — windowing and input
 - [`chrono`](https://github.com/chronotope/chrono) — local time
-- [`bytemuck`](https://github.com/Lokathor/bytemuck), [`pollster`](https://github.com/zesterer/pollster), [`raw-window-handle`](https://github.com/rust-windowing/raw-window-handle) — glue
+- [`bytemuck`](https://github.com/Lokathor/bytemuck), [`pollster`](https://github.com/zesterer/pollster) — glue; [`raw-window-handle`](https://github.com/rust-windowing/raw-window-handle) for the window handle (Windows only)
 
 ## Project layout
 

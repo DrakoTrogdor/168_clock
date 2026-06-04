@@ -13,6 +13,9 @@ wgpu = "0.20"
 pollster = "0.3"
 bytemuck = { version = "1", features = ["derive"] }
 chrono = "0.4"
+
+# Only needed on Windows, to read the HWND for window shaping.
+[target.'cfg(windows)'.dependencies]
 raw-window-handle = "0.6"
 
 [profile.release]

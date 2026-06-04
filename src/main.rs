@@ -21,7 +21,7 @@ use winit::{
     event::{ElementState, Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     keyboard::{KeyCode, PhysicalKey},
-    window::{Fullscreen, Window, WindowBuilder},
+    window::{Window, WindowBuilder},
 };
 
 // Win32 calls used to clip the window to the clock's circle in fullscreen, so
@@ -447,7 +447,9 @@ struct State {
     vbuf_capacity: u64, // in vertices
     msaa_view: wgpu::TextureView,
     is_fullscreen: bool,
-    hwnd: isize, // native window handle (0 off-Windows); used for window shaping
+    alpha_mode: wgpu::CompositeAlphaMode, // non-opaque => transparent bg supported
+    #[allow(dead_code)] // read only on Windows (window shaping)
+    hwnd: isize, // native window handle (0 off-Windows)
 }
 
 fn make_msaa(device: &wgpu::Device, config: &wgpu::SurfaceConfiguration) -> wgpu::TextureView {
@@ -521,13 +523,35 @@ impl State {
             .find(|f| !f.is_srgb())
             .unwrap_or(caps.formats[0]);
 
+        // Transparency strategy is platform-specific:
+        //   * Windows: keep an Opaque swapchain and clip the window to the clock
+        //     with a region (per-pixel GPU alpha is unreliable on DXGI flip-model
+        //     swapchains).
+        //   * macOS / Linux: pick a transparency-capable alpha mode so a cleared
+        //     (alpha 0) background lets the desktop show through in fullscreen.
+        let alpha_mode = if cfg!(windows) {
+            wgpu::CompositeAlphaMode::Opaque
+        } else if caps
+            .alpha_modes
+            .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
+        {
+            wgpu::CompositeAlphaMode::PostMultiplied
+        } else if caps
+            .alpha_modes
+            .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
+        {
+            wgpu::CompositeAlphaMode::PreMultiplied
+        } else {
+            caps.alpha_modes[0]
+        };
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format,
             width: size.width.max(1),
             height: size.height.max(1),
             present_mode: wgpu::PresentMode::Fifo, // vsync; always supported
-            alpha_mode: caps.alpha_modes[0],
+            alpha_mode,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
@@ -618,6 +642,7 @@ impl State {
             vbuf_capacity,
             msaa_view,
             is_fullscreen: false,
+            alpha_mode,
             hwnd,
         }
     }
@@ -633,20 +658,34 @@ impl State {
         }
     }
 
-    /// Toggle borderless fullscreen. Fullscreen drops the title bar/decorations
-    /// and clips the window to the clock's circle (see `apply_window_shape`),
-    /// leaving everything outside it transparent. Windowed restores the normal
-    /// decorated rectangle.
+    /// Toggle borderless fullscreen. Fullscreen drops the title bar/decorations;
+    /// the area outside the clock face becomes transparent (via window shaping on
+    /// Windows, or a transparent GPU clear on macOS/Linux). Windowed restores the
+    /// normal decorated rectangle.
     fn toggle_fullscreen(&mut self) {
         self.is_fullscreen = !self.is_fullscreen;
-        let mode = if self.is_fullscreen {
-            Some(Fullscreen::Borderless(None))
-        } else {
-            None
-        };
-        self.window.set_fullscreen(mode);
-        // A Resized event follows and re-applies the shape at the new size; do it
-        // now too so exiting fullscreen drops the region without a 1-frame lag.
+
+        // macOS: use *simple* fullscreen (a borderless window covering the screen
+        // on the current desktop) rather than native fullscreen, which would move
+        // us to a separate Space with an opaque black backdrop and defeat the
+        // see-through effect.
+        #[cfg(target_os = "macos")]
+        {
+            use winit::platform::macos::WindowExtMacOS;
+            let _ = self.window.set_simple_fullscreen(self.is_fullscreen);
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let mode = if self.is_fullscreen {
+                Some(winit::window::Fullscreen::Borderless(None))
+            } else {
+                None
+            };
+            self.window.set_fullscreen(mode);
+        }
+
+        // A Resized event follows and re-applies the window shape at the new size;
+        // do it now too so exiting fullscreen drops the region without a 1-frame lag.
         self.apply_window_shape();
     }
 
@@ -679,6 +718,17 @@ impl State {
         let h = self.size.height as f32;
         let (sx, sy) = if w >= h { (h / w, 1.0) } else { (1.0, w / h) };
 
+        // In fullscreen with a transparency-capable surface (macOS/Linux), clear
+        // to fully transparent so only the opaque clock circle shows and the
+        // desktop is visible around it. Otherwise — windowed, or Windows where the
+        // window is shaped to the circle instead — clear to the opaque dark
+        // background.
+        let clear = if self.is_fullscreen && self.alpha_mode != wgpu::CompositeAlphaMode::Opaque {
+            wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }
+        } else {
+            wgpu::Color { r: 0.02, g: 0.02, b: 0.03, a: 1.0 }
+        };
+
         let mut verts: Vec<Vertex> = Vec::with_capacity(self.vbuf_capacity as usize);
         build_clock(&mut verts, sx, sy);
         // Safety valve: never overflow the buffer.
@@ -703,12 +753,7 @@ impl State {
                     view: &self.msaa_view,
                     resolve_target: Some(&view),
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.02,
-                            g: 0.02,
-                            b: 0.03,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(clear),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -729,13 +774,20 @@ impl State {
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
-    let window = Arc::new(
-        WindowBuilder::new()
-            .with_title("168-Hour Week Clock")
-            .with_inner_size(LogicalSize::new(720.0, 720.0))
-            .build(&event_loop)
-            .unwrap(),
-    );
+
+    // `mut` is only exercised on non-Windows, where the transparency hint is set.
+    #[allow(unused_mut)]
+    let mut builder = WindowBuilder::new()
+        .with_title("168-Hour Week Clock")
+        .with_inner_size(LogicalSize::new(720.0, 720.0));
+    // On macOS/Linux a transparent window lets the desktop show through the
+    // cleared (alpha 0) background in fullscreen. On Windows the window stays
+    // opaque and is instead shaped to the clock circle (see apply_window_shape).
+    #[cfg(not(windows))]
+    {
+        builder = builder.with_transparent(true);
+    }
+    let window = Arc::new(builder.build(&event_loop).unwrap());
 
     let mut state = pollster::block_on(State::new(window));
 
