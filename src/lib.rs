@@ -13,7 +13,7 @@
 
 use std::sync::Arc;
 
-use chrono::{Datelike, Local, Timelike};
+use chrono::{Datelike, Timelike};
 use winit::{
     dpi::{LogicalSize, PhysicalSize},
     event::{ElementState, Event, WindowEvent},
@@ -380,10 +380,78 @@ fn hand_number_color(weekday: bool, tod: f64) -> [f32; 3] {
     }
 }
 
+/// Current local time. On desktop this is the system local time; on Android,
+/// chrono can't read the platform timezone (no access to Android's bundled tz
+/// database) and would fall back to UTC, so we fetch the current UTC offset from
+/// Java's `TimeZone.getDefault()` via JNI and apply it. Returned as a
+/// `FixedOffset` time so both platforms share one type.
+fn now_local() -> chrono::DateTime<chrono::FixedOffset> {
+    #[cfg(not(target_os = "android"))]
+    {
+        chrono::Local::now().fixed_offset()
+    }
+    #[cfg(target_os = "android")]
+    {
+        let offset = chrono::FixedOffset::east_opt(android_offset_seconds())
+            .unwrap_or_else(|| chrono::FixedOffset::east_opt(0).unwrap());
+        chrono::Utc::now().with_timezone(&offset)
+    }
+}
+
+/// Local UTC offset in seconds on Android, cached after the first success
+/// (DST-aware via the platform timezone). Returns 0 (UTC) until the first JNI
+/// call succeeds, then the cached value.
+#[cfg(target_os = "android")]
+fn android_offset_seconds() -> i32 {
+    use std::sync::atomic::{AtomicI32, Ordering};
+    static CACHE: AtomicI32 = AtomicI32::new(i32::MIN); // MIN = not yet known
+    let cached = CACHE.load(Ordering::Relaxed);
+    if cached != i32::MIN {
+        return cached;
+    }
+    match android_query_offset_seconds() {
+        Some(secs) => {
+            CACHE.store(secs, Ordering::Relaxed);
+            secs
+        }
+        None => 0, // not cached — retry on the next frame
+    }
+}
+
+/// `java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis())` via JNI.
+#[cfg(target_os = "android")]
+fn android_query_offset_seconds() -> Option<i32> {
+    let ctx = ndk_context::android_context();
+    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm().cast()) }.ok()?;
+    let mut env = vm.attach_current_thread().ok()?;
+    let tz = env
+        .call_static_method(
+            "java/util/TimeZone",
+            "getDefault",
+            "()Ljava/util/TimeZone;",
+            &[],
+        )
+        .ok()?
+        .l()
+        .ok()?;
+    let millis = chrono::Utc::now().timestamp_millis();
+    let offset_ms = env
+        .call_method(
+            &tz,
+            "getOffset",
+            "(J)I",
+            &[jni::objects::JValue::Long(millis)],
+        )
+        .ok()?
+        .i()
+        .ok()?;
+    Some(offset_ms / 1000)
+}
+
 /// Build the whole clock for the current local time. `sx`/`sy` squash the
 /// geometry so the circle stays round regardless of window aspect ratio.
 fn build_clock(v: &mut Vec<Vertex>, sx: f32, sy: f32) {
-    let now = Local::now();
+    let now = now_local();
     let dow = now.weekday().num_days_from_sunday() as f64; // Sun=0 .. Sat=6
     let h_i = now.hour(); // 0..23, shown on the hour hand
     let m_i = now.minute(); // 0..59, shown on the minute hand

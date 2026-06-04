@@ -26,9 +26,13 @@ png = "0.17" # decode the embedded window icon at runtime
 [target.'cfg(windows)'.dependencies]
 raw-window-handle = "0.6"
 
-# Android: enable winit's NativeActivity backend (provides the android_main glue).
+# Android: enable winit's NativeActivity backend (provides the android_main glue);
+# jni + ndk-context let us read the local UTC offset from the platform timezone,
+# which chrono can't do on Android (it falls back to UTC otherwise).
 [target.'cfg(target_os = "android")'.dependencies]
 winit = { version = "0.29", features = ["android-native-activity"] }
+jni = "0.21"
+ndk-context = "0.1"
 
 # Embeds assets/icon.ico into the .exe (Explorer / taskbar icon).
 [target.'cfg(windows)'.build-dependencies]
