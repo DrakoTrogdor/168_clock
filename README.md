@@ -164,7 +164,9 @@ cargo install cargo-apk
 cargo apk build --lib            # debug, auto-signed: target/debug/apk/*.apk
 ```
 
-CI also builds the APK and uploads it as an artifact. A release APK needs your own signing keystore (`[package.metadata.android.signing.release]`). Status: builds and type-checks; on-device behavior (resume/suspend, local time) still being validated.
+> **Note:** `cargo-apk` produces a *debug* build, and `android-activity 0.5` aborts at startup under Rust 1.78+ debug-assertions (a null-slice precondition in its `NativeActivity` glue, before `android_main` runs). The `[profile.dev] debug-assertions = false` line in `Cargo.toml` works around it; release builds are unaffected.
+
+Releases ship an **optimized, signed release APK**. The [release workflow](.github/workflows/release.yml) signs it with the project's stable keystore — kept in the `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` repository secrets and passed to `cargo-apk` via `CARGO_APK_RELEASE_KEYSTORE` / `CARGO_APK_RELEASE_KEYSTORE_PASSWORD` — so successive releases install over each other without an uninstall. CI also builds a debug APK as a check. Verified running on-device (Galaxy S10+, Android 12).
 
 ## License
 

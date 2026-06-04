@@ -77,8 +77,9 @@ jobs:
           files: dist/${{ matrix.artifact }}
           generate_release_notes: true
 
-  # Android: a debug-signed APK (installable for testing; a release APK needs
-  # your own signing keystore — see the README).
+  # Android: an optimized release APK, signed with the project's stable keystore
+  # (stored as the ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD repo
+  # secrets) so successive releases install over each other.
   android:
     name: Release (Android APK)
     runs-on: ubuntu-latest
@@ -99,10 +100,22 @@ jobs:
       - name: Install Android SDK platform 33
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-33" >/dev/null
 
-      - name: Build APK
+      - name: Build signed release APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is not set"; exit 1
+          fi
+          # Decode the keystore from the secret into a temp file (never committed).
+          ks="$RUNNER_TEMP/weekclock-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > "$ks"
+          echo "keystore: $(stat -c%s "$ks") bytes"
           export ANDROID_NDK_ROOT="$ANDROID_NDK_LATEST_HOME"
-          cargo apk build --lib
+          export CARGO_APK_RELEASE_KEYSTORE="$ks"
+          export CARGO_APK_RELEASE_KEYSTORE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD"
+          cargo apk build --lib --release
 
       - name: Stage APK
         shell: bash
@@ -110,7 +123,7 @@ jobs:
           mkdir -p dist
           # cargo-apk emits more than one .apk; the final signed one is
           # named after the lib (weekclock.apk).
-          apk=$(find target -name weekclock.apk | head -n1)
+          apk=$(find target/release -name weekclock.apk | head -n1)
           echo "staging $apk"
           test -n "$apk"
           cp "$apk" dist/week-clock-android-arm64.apk

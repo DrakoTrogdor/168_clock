@@ -1875,7 +1875,7 @@ dependencies = [
 
 [[package]]
 name = "week-clock"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "android_logger",
  "bytemuck",

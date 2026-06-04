@@ -15,6 +15,12 @@ Cargo.toml.tmp
 # so the exact dependency versions are pinned for reproducible builds.
 # (Do not add Cargo.lock here.)
 
+# --- Secrets ---
+# Android signing keystores live in CI secrets (ANDROID_KEYSTORE_BASE64), never
+# in the repo. This guards against committing a local copy.
+*.jks
+*.keystore
+
 # --- Editors / IDEs ---
 /.vscode/
 /.idea/
