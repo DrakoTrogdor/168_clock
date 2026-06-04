@@ -1,6 +1,6 @@
 [package]
 name = "week-clock"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 
 # The app lives in the library so Android can build it as a `cdylib` (whose
@@ -33,6 +33,9 @@ raw-window-handle = "0.6"
 winit = { version = "0.29", features = ["android-native-activity"] }
 jni = "0.21"
 ndk-context = "0.1"
+# Route log output and panics to logcat so on-device failures are diagnosable.
+android_logger = "0.14"
+log = "0.4"
 
 # Embeds assets/icon.ico into the .exe (Explorer / taskbar icon).
 [target.'cfg(windows)'.build-dependencies]

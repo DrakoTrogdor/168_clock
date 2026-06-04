@@ -409,7 +409,11 @@ fn android_offset_seconds() -> i32 {
     if cached != i32::MIN {
         return cached;
     }
-    match android_query_offset_seconds() {
+    // Never let a JNI / ndk_context failure crash the app — fall back to UTC.
+    let queried = std::panic::catch_unwind(android_query_offset_seconds)
+        .ok()
+        .flatten();
+    match queried {
         Some(secs) => {
             CACHE.store(secs, Ordering::Relaxed);
             secs
@@ -593,8 +597,14 @@ impl State {
         #[cfg(windows)]
         set_windows_taskbar_icon(hwnd);
 
+        // Android: also allow the GL backend, as a fallback for devices whose
+        // Vulkan driver wgpu can't use. Desktop sticks to the primary backends.
+        #[cfg(target_os = "android")]
+        let backends = wgpu::Backends::VULKAN | wgpu::Backends::GL;
+        #[cfg(not(target_os = "android"))]
+        let backends = wgpu::Backends::PRIMARY;
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::PRIMARY,
+            backends,
             ..Default::default()
         });
 
@@ -614,7 +624,12 @@ impl State {
                 &wgpu::DeviceDescriptor {
                     label: Some("device"),
                     required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
+                    // Desktop's default limits exceed what many mobile GPUs
+                    // report, which makes request_device fail. Ask only for the
+                    // conservative downlevel set (more than this 2D app needs),
+                    // raised to the adapter's real max texture size.
+                    required_limits: wgpu::Limits::downlevel_defaults()
+                        .using_resolution(adapter.limits()),
                 },
                 None,
             )
@@ -993,6 +1008,16 @@ pub fn run_desktop() {
 #[no_mangle]
 fn android_main(app: winit::platform::android::activity::AndroidApp) {
     use winit::platform::android::EventLoopBuilderExtAndroid;
+    // Route log output and panics to logcat (tag "week-clock") so a crash is
+    // diagnosable with `adb logcat -s week-clock`.
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Info)
+            .with_tag("week-clock"),
+    );
+    std::panic::set_hook(Box::new(|info| log::error!("panic: {info}")));
+    log::info!("android_main starting (v{})", env!("WEEK_CLOCK_VERSION"));
+
     let event_loop = winit::event_loop::EventLoopBuilder::new()
         .with_android_app(app)
         .build()
