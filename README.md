@@ -146,11 +146,24 @@ git push origin v0.1.0
 
 ### Icons
 
-The icon is generated from [`assets/icon.svg`](assets/icon.svg) (by `scripts/gen_icon.py`). Run `scripts/build-icons.sh` to regenerate the raster assets — `icon.png`, `icon.ico`, `icon.icns` — which needs `librsvg2-bin`, `icoutils`, and `icnsutils`.
+The icon is generated from [`assets/icon.svg`](assets/icon.svg) (by `scripts/gen_icon.py`). Run `scripts/build-icons.sh` to regenerate the raster assets — `icon.png`, `icon.ico`, `icon.icns`, and the Android `android-res/mipmap-*/ic_launcher.png` — which needs `librsvg2-bin`, `icoutils`, and `icnsutils`.
 
 - **Windows** — `icon.ico` is embedded into the `.exe` at build time (`build.rs` + `winresource`) and also set as the runtime window icon.
 - **Linux** — set as the runtime window icon (X11; under Wayland the icon comes from a `.desktop` file).
 - **macOS** — winit can't set a window icon, so build a `.app` with [`cargo-bundle`](https://github.com/burtonageo/cargo-bundle) (`cargo install cargo-bundle && cargo bundle --release`); it uses `assets/icon.icns` via the `[package.metadata.bundle]` config.
+- **Android** — the `assets/android-res/mipmap-*` launcher icons, referenced as `@mipmap/ic_launcher` via `[package.metadata.android]`.
+
+### Android (experimental)
+
+The same code runs full-screen on Android — the app is a library crate (`weekclock`) with an `android_main` entry built as a `cdylib`, and the surface is recreated on `Resumed`/`Suspended`. Build an APK with [`cargo-apk`](https://crates.io/crates/cargo-apk) (needs the Android SDK + NDK and the `aarch64-linux-android` Rust target):
+
+```sh
+rustup target add aarch64-linux-android
+cargo install cargo-apk
+cargo apk build --lib            # debug, auto-signed: target/debug/apk/*.apk
+```
+
+CI also builds the APK and uploads it as an artifact. A release APK needs your own signing keystore (`[package.metadata.android.signing.release]`). Status: builds and type-checks; on-device behavior (resume/suspend, local time) still being validated.
 
 ## License
 

@@ -1814,6 +1814,8 @@ version = "0.1.0"
 dependencies = [
  "bytemuck",
  "chrono",
+ "jni",
+ "ndk-context",
  "png",
  "pollster",
  "raw-window-handle",
