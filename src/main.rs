@@ -250,6 +250,7 @@ fn glyph(c: char) -> Vec<Vec<(f32, f32)>> {
 /// Draw `text` centered on (cx, cy) with an arbitrary orientation. `ex` is the
 /// unit "advance" direction (text left -> right); `ey` is the unit "up"
 /// direction. `h` is the cell height and `stroke` the stroke half-width.
+#[allow(clippy::too_many_arguments)]
 fn add_text_dir(
     v: &mut Vec<Vertex>,
     text: &str,
@@ -336,7 +337,7 @@ fn hand_number_color(weekday: bool, tod: f64) -> [f32; 3] {
     const GREEN: [f32; 3] = [0.16, 0.66, 0.24];
     const AMBER: [f32; 3] = [0.96, 0.66, 0.04];
     const RED: [f32; 3] = [0.85, 0.16, 0.14];
-    if !weekday || tod < 9.0 || tod > 17.0 {
+    if !weekday || !(9.0..=17.0).contains(&tod) {
         DARK
     } else if tod <= 12.0 {
         lerp3(GREEN, AMBER, ((tod - 9.0) / 3.0) as f32) // 9am green -> noon amber
@@ -368,8 +369,8 @@ fn build_clock(v: &mut Vec<Vertex>, sx: f32, sy: f32) {
     add_disk(v, 0.0, 0.0, 0.92, [0.08, 0.09, 0.11], 128);
 
     // Seven colored day arcs forming the bezel (Sun at top, clockwise).
-    for d in 0..7 {
-        add_arc(v, d as f64 / 7.0, (d + 1) as f64 / 7.0, 0.86, 0.96, DAY_COLORS[d], 24);
+    for (d, &color) in DAY_COLORS.iter().enumerate() {
+        add_arc(v, d as f64 / 7.0, (d + 1) as f64 / 7.0, 0.86, 0.96, color, 24);
     }
 
     // 60 minute/second ticks set just inside the outer edge of the colored
@@ -402,17 +403,17 @@ fn build_clock(v: &mut Vec<Vertex>, sx: f32, sy: f32) {
     }
 
     // Day-name labels, upright, centered in each day's wedge.
-    for d in 0..7 {
+    for (d, &name) in DAY_NAMES.iter().enumerate() {
         let f = (d as f64 + 0.5) / 7.0;
         let (dx, dy) = dir(f);
-        add_text(v, DAY_NAMES[d], 0.63 * dx, 0.63 * dy, 0.082, [0.93, 0.95, 0.99]);
+        add_text(v, name, 0.63 * dx, 0.63 * dy, 0.082, [0.93, 0.95, 0.99]);
     }
 
     // Hands (drawn back-to-front). The hour and minute hands carry a 2-digit
     // readout near their tips, engraved (dark) into the light hand.
     let hour_len = 0.50;
     let min_len = 0.78;
-    let weekday = dow >= 1.0 && dow <= 5.0; // Mon..Fri; Sun(0) and Sat(6) stay dark
+    let weekday = (1.0..=5.0).contains(&dow); // Mon..Fri; Sun(0) and Sat(6) stay dark
     let engrave = hand_number_color(weekday, hour_f);
     add_hand(v, frac_week, hour_len, 0.10, 0.026, [0.93, 0.95, 0.99]); // hour
     add_hand_number(v, frac_week, hour_len, 0.040, 0.0030, engrave, &format!("{:02}", h_i));
