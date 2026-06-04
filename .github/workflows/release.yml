@@ -76,3 +76,42 @@ jobs:
         with:
           files: dist/${{ matrix.artifact }}
           generate_release_notes: true
+
+  # Android: a debug-signed APK (installable for testing; a release APK needs
+  # your own signing keystore — see the README).
+  android:
+    name: Release (Android APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust + Android target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Cache cargo registry and target
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-apk
+        run: cargo install cargo-apk
+
+      - name: Install Android SDK platform 33
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-33" >/dev/null
+
+      - name: Build APK
+        run: |
+          export ANDROID_NDK_ROOT="$ANDROID_NDK_LATEST_HOME"
+          cargo apk build --lib
+
+      - name: Stage APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp target/debug/apk/*.apk dist/week-clock-android-arm64.apk
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/week-clock-android-arm64.apk
+          generate_release_notes: true

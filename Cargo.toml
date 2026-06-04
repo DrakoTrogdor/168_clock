@@ -1,6 +1,6 @@
 [package]
 name = "week-clock"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # The app lives in the library so Android can build it as a `cdylib` (whose
