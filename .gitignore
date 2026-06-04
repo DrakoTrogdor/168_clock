@@ -1,0 +1,23 @@
+# --- Rust / Cargo ---
+# Compiled build output and executables
+/target/
+
+# rustfmt backup files
+**/*.rs.bk
+
+# MSVC debugging info (generated on Windows builds)
+*.pdb
+
+# Cargo.lock is intentionally committed: this crate is a binary application,
+# so the exact dependency versions are pinned for reproducible builds.
+# (Do not add Cargo.lock here.)
+
+# --- Editors / IDEs ---
+/.vscode/
+/.idea/
+*.iml
+
+# --- OS noise ---
+Thumbs.db
+Desktop.ini
+.DS_Store

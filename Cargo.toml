@@ -1,0 +1,19 @@
+[package]
+name = "week-clock"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "week-clock"
+path = "src/main.rs"
+
+[dependencies]
+winit = "0.29"
+wgpu = "0.20"
+pollster = "0.3"
+bytemuck = { version = "1", features = ["derive"] }
+chrono = "0.4"
+raw-window-handle = "0.6"
+
+[profile.release]
+opt-level = 3
