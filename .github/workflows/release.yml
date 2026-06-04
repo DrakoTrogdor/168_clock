@@ -1,7 +1,9 @@
 name: Release
 
-# Push a semver tag (e.g. `git tag v0.1.0 && git push --tags`) to build the
-# native binaries on each OS and publish them to a GitHub Release.
+# Push a semver tag (e.g. `git tag v0.1.1 && git push origin v0.1.1`) to build
+# the native binaries on each OS and publish them to a GitHub Release. Windows
+# and Linux ship a plain binary; macOS ships a zipped .app bundle so it carries
+# the icon (winit can't set a macOS window icon).
 on:
   push:
     tags: ['v*.*.*']
@@ -27,8 +29,7 @@ jobs:
             artifact: week-clock-windows-x86_64.exe
             bin: week-clock.exe
           - os: macos-latest
-            artifact: week-clock-macos-arm64
-            bin: week-clock
+            artifact: week-clock-macos-arm64.app.zip
     steps:
       - uses: actions/checkout@v4
 
@@ -47,11 +48,28 @@ jobs:
       - name: Build release
         run: cargo build --release --verbose
 
-      - name: Stage artifact
+      # Windows / Linux: ship the plain binary (the Windows .exe has its icon
+      # embedded as a resource; the Linux binary sets its icon at runtime).
+      - name: Stage binary
+        if: runner.os != 'macOS'
         shell: bash
         run: |
           mkdir -p dist
           cp "target/release/${{ matrix.bin }}" "dist/${{ matrix.artifact }}"
+
+      # macOS: assemble a .app bundle around the binary (icon + Info.plist) and
+      # zip it with ditto so it stays a valid bundle.
+      - name: Stage macOS .app
+        if: runner.os == 'macOS'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          app="dist/168-Hour Week Clock.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+          cp target/release/week-clock "$app/Contents/MacOS/week-clock"
+          chmod +x "$app/Contents/MacOS/week-clock"
+          cp assets/icon.icns "$app/Contents/Resources/icon.icns"
+          sed "s/VERSION_PLACEHOLDER/${version}/g" assets/Info.plist > "$app/Contents/Info.plist"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "dist/${{ matrix.artifact }}"
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2

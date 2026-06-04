@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>168-Hour Week Clock</string>
+  <key>CFBundleDisplayName</key>
+  <string>168-Hour Week Clock</string>
+  <key>CFBundleIdentifier</key>
+  <string>io.github.drakotrogdor.week-clock</string>
+  <key>CFBundleVersion</key>
+  <string>VERSION_PLACEHOLDER</string>
+  <key>CFBundleShortVersionString</key>
+  <string>VERSION_PLACEHOLDER</string>
+  <key>CFBundleExecutable</key>
+  <string>week-clock</string>
+  <key>CFBundleIconFile</key>
+  <string>icon.icns</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>10.13</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+</dict>
+</plist>
