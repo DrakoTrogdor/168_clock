@@ -108,7 +108,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp target/debug/apk/*.apk dist/week-clock-android-arm64.apk
+          # cargo-apk emits more than one .apk; the final signed one is
+          # named after the lib (weekclock.apk).
+          apk=$(find target -name weekclock.apk | head -n1)
+          echo "staging $apk"
+          test -n "$apk"
+          cp "$apk" dist/week-clock-android-arm64.apk
+          ls -la dist
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v2

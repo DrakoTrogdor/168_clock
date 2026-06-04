@@ -68,7 +68,7 @@ The executable is written to `target/release/week-clock.exe`. Release builds use
 
 - **Rendering** — the whole clock is rebuilt every frame as a few thousand colored triangles (face, bezel, ticks, labels, hands) and uploaded to a single vertex buffer. A minimal 2D pipeline with 4× MSAA draws it. There is no retained scene graph; the CPU‑side geometry is cheap enough to regenerate per frame.
 - **Time** — local time (including DST) comes from [`chrono`](https://github.com/chronotope/chrono); the hour‑of‑week, minute, and second are turned into hand angles.
-- **Text** — digits and day names are a hand‑authored vector stroke font (`glyph()` in `src/main.rs`), so there's no glyph‑rasterization or font‑atlas dependency.
+- **Text** — digits and day names are a hand‑authored vector stroke font (`glyph()` in `src/lib.rs`), so there's no glyph‑rasterization or font‑atlas dependency.
 - **Full‑screen transparency** is handled per platform:
   - **Windows** — the window is clipped to the clock circle with a Win32 window region (`SetWindowRgn`); a shaped window forces DWM composition, so the see‑through effect works even full‑screen. (Per‑pixel GPU alpha is unreliable with DXGI flip‑model swapchains.)
   - **macOS / Linux** — a transparent window plus a non‑opaque surface alpha mode; in full‑screen the background is cleared to alpha 0, leaving only the opaque clock circle so the desktop shows around it. macOS uses *simple* full‑screen (not a separate Space) to keep the live desktop behind the clock.
@@ -98,7 +98,8 @@ Windows is the primary, tested target. The Linux build is verified to compile an
 ```
 .
 ├── src/
-│   └── main.rs          # the entire app: rendering, geometry, font, input
+│   ├── lib.rs           # the entire app: rendering, geometry, font, input, android_main
+│   └── main.rs          # thin desktop binary entry point
 ├── assets/              # icon (svg/png/ico/icns) + macOS Info.plist
 ├── scripts/             # icon generator + raster asset pipeline
 ├── .github/workflows/   # CI + release workflows
