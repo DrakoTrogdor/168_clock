@@ -1,0 +1,11 @@
+# Normalize text files to LF in the repository.
+* text=auto
+
+# Always check these out with LF — scripts must stay LF to run on Unix/CI.
+*.sh   text eol=lf
+*.py   text eol=lf
+
+# Icon binaries: no line-ending or diff munging.
+*.png  binary
+*.ico  binary
+*.icns binary

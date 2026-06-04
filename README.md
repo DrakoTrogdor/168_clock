@@ -128,6 +128,14 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
+### Icons
+
+The icon is generated from [`assets/icon.svg`](assets/icon.svg) (by `scripts/gen_icon.py`). Run `scripts/build-icons.sh` to regenerate the raster assets — `icon.png`, `icon.ico`, `icon.icns` — which needs `librsvg2-bin`, `icoutils`, and `icnsutils`.
+
+- **Windows** — `icon.ico` is embedded into the `.exe` at build time (`build.rs` + `winresource`) and also set as the runtime window icon.
+- **Linux** — set as the runtime window icon (X11; under Wayland the icon comes from a `.desktop` file).
+- **macOS** — winit can't set a window icon, so build a `.app` with [`cargo-bundle`](https://github.com/burtonageo/cargo-bundle) (`cargo install cargo-bundle && cargo bundle --release`); it uses `assets/icon.icns` via the `[package.metadata.bundle]` config.
+
 ## License
 
 Released under the [MIT License](LICENSE).

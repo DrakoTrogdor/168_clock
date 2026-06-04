@@ -13,10 +13,21 @@ wgpu = "0.20"
 pollster = "0.3"
 bytemuck = { version = "1", features = ["derive"] }
 chrono = "0.4"
+png = "0.17" # decode the embedded window icon at runtime
 
 # Only needed on Windows, to read the HWND for window shaping.
 [target.'cfg(windows)'.dependencies]
 raw-window-handle = "0.6"
+
+# Embeds assets/icon.ico into the .exe (Explorer / taskbar icon).
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+# Used by `cargo bundle` to build a macOS .app (and .deb/.msi) with the icon.
+[package.metadata.bundle]
+name = "168-Hour Week Clock"
+identifier = "io.github.drakotrogdor.week-clock"
+icon = ["assets/icon.icns", "assets/icon.png"]
 
 [profile.release]
 opt-level = 3

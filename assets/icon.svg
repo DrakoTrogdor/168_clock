@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>168-Hour Week Clock</title>
+  <circle cx="256.0" cy="256.0" r="248.0" fill="#14171C"/>
+  <g fill="none" stroke-width="54">
+    <path d="M 256.000 35.000 A 221.000 221.000 0 0 1 428.785 118.209" stroke="#E63845"/>
+    <path d="M 428.785 118.209 A 221.000 221.000 0 0 1 471.459 305.177" stroke="#F2732B"/>
+    <path d="M 471.459 305.177 A 221.000 221.000 0 0 1 351.888 455.114" stroke="#F7C74F"/>
+    <path d="M 351.888 455.114 A 221.000 221.000 0 0 1 160.112 455.114" stroke="#6BBA66"/>
+    <path d="M 160.112 455.114 A 221.000 221.000 0 0 1 40.541 305.177" stroke="#33A899"/>
+    <path d="M 40.541 305.177 A 221.000 221.000 0 0 1 83.215 118.209" stroke="#4580C7"/>
+    <path d="M 83.215 118.209 A 221.000 221.000 0 0 1 256.000 35.000" stroke="#9E59D9"/>
+  </g>
+  <circle cx="256.0" cy="256.0" r="170.0" fill="none" stroke="#808A99" stroke-width="16"/>
+  <g fill="none" stroke-width="16" stroke-linecap="butt">
+    <path d="M 416.460 199.853 A 170.000 170.000 0 0 1 425.881 249.643" stroke="#45D96B"/>
+    <path d="M 399.943 346.445 A 170.000 170.000 0 0 1 366.889 384.855" stroke="#45D96B"/>
+    <path d="M 275.034 424.931 A 170.000 170.000 0 0 1 224.395 423.036" stroke="#45D96B"/>
+    <path d="M 135.792 376.208 A 170.000 170.000 0 0 1 105.700 335.436" stroke="#45D96B"/>
+    <path d="M 87.069 236.966 A 170.000 170.000 0 0 1 100.184 188.018" stroke="#45D96B"/>
+  </g>
+  <rect x="245.0" y="156.0" width="22" height="126" rx="11" fill="#EDF2FC"/>
+  <rect x="226.0" y="249.0" width="180" height="14" rx="7" fill="#BDCCEB"/>
+  <circle cx="256.0" cy="256.0" r="16" fill="#EDF2FC"/>
+  <circle cx="256.0" cy="256.0" r="7" fill="#F55245"/>
+</svg>

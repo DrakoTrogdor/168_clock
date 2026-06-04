@@ -773,6 +773,21 @@ impl State {
     }
 }
 
+/// Decode the embedded PNG into a window icon. This sets the title-bar / taskbar
+/// icon on Windows and X11; winit ignores it on macOS and Wayland, which take the
+/// icon from the .app bundle / .desktop file instead. Returns None on failure.
+fn load_icon() -> Option<winit::window::Icon> {
+    let bytes = include_bytes!("../assets/icon.png");
+    let mut reader = png::Decoder::new(bytes.as_slice()).read_info().ok()?;
+    let mut buf = vec![0u8; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut buf).ok()?;
+    if info.color_type != png::ColorType::Rgba || info.bit_depth != png::BitDepth::Eight {
+        return None;
+    }
+    buf.truncate(info.buffer_size());
+    winit::window::Icon::from_rgba(buf, info.width, info.height).ok()
+}
+
 fn main() {
     let event_loop = EventLoop::new().unwrap();
 
@@ -780,6 +795,7 @@ fn main() {
     #[allow(unused_mut)]
     let mut builder = WindowBuilder::new()
         .with_title("168-Hour Week Clock")
+        .with_window_icon(load_icon())
         .with_inner_size(LogicalSize::new(720.0, 720.0));
     // On macOS/Linux a transparent window lets the desktop show through the
     // cleared (alpha 0) background in fullscreen. On Windows the window stays
