@@ -69,14 +69,16 @@ jobs:
       - name: Install Android SDK platform 33
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-33" >/dev/null
 
+      # Debug build: auto-signed with the debug key, so it installs for testing
+      # without a release keystore. (Release signing is a user step — see README.)
       - name: Build APK
         run: |
           export ANDROID_NDK_ROOT="$ANDROID_NDK_LATEST_HOME"
-          cargo apk build --release
+          cargo apk build
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: week-clock-android-apk
-          path: target/release/apk/*.apk
+          path: target/debug/apk/*.apk
           if-no-files-found: error
