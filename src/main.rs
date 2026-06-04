@@ -372,6 +372,16 @@ fn build_clock(v: &mut Vec<Vertex>, sx: f32, sy: f32) {
         add_arc(v, d as f64 / 7.0, (d + 1) as f64 / 7.0, 0.86, 0.96, DAY_COLORS[d], 24);
     }
 
+    // 60 minute/second ticks set just inside the outer edge of the colored
+    // bezel, with slightly longer, thicker marks every 5.
+    for i in 0..60 {
+        let f = i as f64 / 60.0;
+        let (dx, dy) = dir(f);
+        let major = i % 5 == 0;
+        let (inner, w) = if major { (0.918, 0.0026) } else { (0.933, 0.0015) };
+        add_seg(v, [0.955 * dx, 0.955 * dy], [inner * dx, inner * dy], w, [0.10, 0.11, 0.13]);
+    }
+
     // 168 hour ticks. Day boundaries (every 24h) are long and white; the 9am-5pm
     // work hours on Mon-Fri are highlighted in green.
     for i in 0..168 {
